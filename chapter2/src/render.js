@@ -27,7 +27,6 @@ for(const key in props){
 }
   return newNode;
 }
-ㅌ
 
 export function createElement(node) {
   
