@@ -5,7 +5,13 @@ const validateChildren = (newNode, el) => {
     newNode.appendChild(el);
   }
 };
-
+function getLongerArr(arr1, arr2) {
+  if (arr1.length > arr2.length) {
+    return arr1;
+  } else {
+    return arr2;
+  }
+}
 export function jsx(type, props, ...children) {
   const newNode = createElement(type);
 
@@ -28,30 +34,37 @@ export function createElement(node) {
   return template;
 }
 
+function convertArraytoObject(children) {
+  const object = {};
+  const nameList = children.getAttributeNames();
+  nameList.forEach((name) => {
+    const value = children.getAttribute(name);
+    object[name] = value;
+  });
+  return object;
+}
+
 // diff 알고리즘
 // target - oldProps
 // newProps - newNode
 // oldProps - oldNode
 // 이 둘 사이에 다른 부분만 target에 반영.
 function updateAttributes(target, newProps, oldProps) {
-  console.log(target);
-  for (let key in newProps) {
-    console.log(key, newProps[key]);
-    // if (key in oldProps && newProps[key] === oldProps[key]) {
-    //   console.log(1);
-    //   return;
-    // } else {
-    //   console.log(2);
-    //   target[key] = newProps[key];
-    // }
+  const oldObject = convertArraytoObject(oldProps);
+  const newObject = convertArraytoObject(newProps);
+
+  for (let key in newObject) {
+    if (key in oldObject && newObject[key] === oldObject[key]) {
+      continue;
+    } else {
+      target.setAttribute(key, newObject[key]);
+    }
   }
 
-  for (let key in oldProps) {
-    if (key in newProps) {
-      console.log(3);
-      return;
+  for (let key in oldObject) {
+    if (key in newObject) {
+      continue;
     } else {
-      console.log(4);
       target.removeAttribute(key);
     }
   }
@@ -73,7 +86,6 @@ export function render(parent, newNode, oldNode, index = 0) {
   //   parent에서 oldNode를 제거
   //   종료
   if (!newNode && oldNode) {
-    console.log(1);
     parent.removeChild(oldNode);
     return;
   }
@@ -81,37 +93,33 @@ export function render(parent, newNode, oldNode, index = 0) {
   //   newNode를 생성하여 parent에 추가
   //   종료
   if (newNode && !oldNode) {
-    console.log(2);
     parent.appendChild(newNode);
     return;
   }
   // 3. 만약 newNode와 oldNode 둘 다 문자열이고 서로 다르다면
   //   oldNode를 newNode로 교체
   //   종료
-  if (
-    typeof newNode === "string" &&
-    typeof oldNode === "string" &&
-    newNode !== oldNode
-  ) {
-    console.log(3);
-    parent.replceChild(newNode, oldNode);
+  if (newNode.nodeType === 3 && oldNode.nodeType === 3 && newNode !== oldNode) {
+    oldNode = newNode;
     return;
   }
   // 4. 만약 newNode와 oldNode의 타입이 다르다면
   //   oldNode를 newNode로 교체
   //   종료
-  if (typeof newNode !== typeof oldNode) {
-    console.log(4);
-    parent.replceChild(newNode, oldNode);
+  if (newNode.nodeType !== oldNode.nodeType) {
+    oldNode = newNode;
     return;
   }
 
   // 5. newNode와 oldNode에 대해 updateAttributes 실행
   updateAttributes(oldNode, newNode.cloneNode(true), oldNode.cloneNode(true));
-  // 6. newNode와 oldNode 자식노드들 중 더 긴 길이를 가진 것을 기준으로 반복
-  //   각 자식노드에 대해 재귀적으로 render 함수 호출
 
-  parent.appendChild(newNode);
+  // 6. newNode와 oldNode 자식노드들 중 더 긴 길이를 가진 것을 기준으로 반복
+  const longerArr = getLongerArr(newNode.children, oldNode.children);
+
+  for (let i = 0; i < longerArr.length; i++) {
+    render(oldNode, newNode.childNodes[i], oldNode.childNodes[i]);
+  }
 }
 
 const App = jsx(
