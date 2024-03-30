@@ -1,11 +1,30 @@
-import { createHooks } from "./hooks.js";
-import { render as updateElement, jsx } from "./render.js";
+import { createHooks } from "./hooks";
+import { render as updateElement } from "./render";
 
 function MyReact() {
-  const _render = () => {};
+  const renderContext = {
+    $root: null,
+    rootComponent: null,
+    currentNode: null,
+    beforeNode: null,
+  };
+
+  const _render = () => {
+    const currentNode = renderContext.rootComponent();
+
+    updateElement(renderContext.$root, currentNode, renderContext.currentNode);
+    resetHookContext();
+
+    renderContext.beforeNode = renderContext.currentNode;
+    renderContext.currentNode = currentNode;
+  };
 
   function render($root, rootComponent) {
-    updateElement($root, rootComponent());
+    renderContext.$root = $root;
+    renderContext.rootComponent = rootComponent;
+    renderContext.currentNode = null;
+    renderContext.beforeNode = null;
+    _render();
   }
 
   const {
@@ -18,21 +37,3 @@ function MyReact() {
 }
 
 export default MyReact();
-
-let fn = null;
-const App = () => {
-  const [size, setSize] = MyReact().useState(1);
-
-  fn = setSize;
-  return jsx(
-    "div",
-    null,
-    ...Array.from({ length: size }).map((_, key) =>
-      jsx("p", null, `${key + 1}번째 자식`)
-    )
-  );
-};
-
-const $root = document.createElement("div");
-MyReact().render($root, App);
-fn(1);
